@@ -1,0 +1,1223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FAF6EF">
+<title>For You 💛</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💛</text></svg>">
+<style>
+/* =========================================================
+   1. Design tokens & base
+   ========================================================= */
+:root {
+  --bg: #FAF6EF;
+  --card: #FFFFFF;
+  --beige: #E8DCC8;
+  --beige-soft: #F3ECE0;
+  --text: #2B2622;
+  --muted: #8C8177;
+  --accent: #C8A27A;
+  --accent-deep: #A9825A;
+  --ios-blue: #007AFF;
+  --radius: 20px;
+  --shadow: 0 12px 32px rgba(90, 64, 30, .08), 0 2px 6px rgba(90, 64, 30, .05);
+  --shadow-lg: 0 20px 50px rgba(90, 64, 30, .14), 0 4px 12px rgba(90, 64, 30, .06);
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+  line-height: 1.4;
+}
+button { font-family: inherit; color: inherit; }
+h1, h2, h3, p { margin: 0; }
+
+/* =========================================================
+   2. Screens (state machine targets)
+   ========================================================= */
+.screen {
+  display: none;
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  padding: max(28px, env(safe-area-inset-top)) 16px max(32px, env(safe-area-inset-bottom));
+  flex-direction: column;
+  align-items: center;
+}
+.screen.active { display: flex; animation: screenIn .55s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes screenIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.wrap { width: 100%; max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; }
+.center-v { justify-content: center; }
+
+.kicker { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent-deep); font-weight: 600; }
+.title { font-size: 28px; font-weight: 700; letter-spacing: -.02em; text-align: center; margin-top: 6px; }
+.subtitle { font-size: 16px; color: var(--muted); text-align: center; margin-top: 6px; max-width: 340px; }
+.hint { font-size: 13px; color: var(--muted); text-align: center; margin-top: 10px; min-height: 18px; transition: color .3s; }
+
+/* Buttons */
+.btn {
+  appearance: none; border: 0; cursor: pointer;
+  font-size: 16px; font-weight: 600; letter-spacing: -.01em;
+  padding: 15px 24px; border-radius: 999px;
+  transition: transform .15s ease, box-shadow .2s ease, opacity .2s ease, background .2s;
+  -webkit-user-select: none; user-select: none;
+}
+.btn:active { transform: scale(.97); }
+.btn:disabled { opacity: .45; cursor: default; transform: none; }
+.btn-primary { background: var(--text); color: #fff; box-shadow: 0 10px 24px rgba(43, 38, 34, .22); }
+.btn-secondary { background: var(--card); color: var(--text); box-shadow: inset 0 0 0 1.5px var(--beige); }
+.btn-block { width: 100%; max-width: 340px; }
+.btn-stack { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; margin-top: 26px; }
+.link-btn {
+  appearance: none; background: none; border: 0; cursor: pointer;
+  color: var(--muted); font-size: 14px; text-decoration: underline; text-underline-offset: 3px;
+  padding: 10px; margin-top: 6px;
+}
+.fade-hidden { opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity .45s ease, transform .45s ease; }
+.fade-hidden.show { opacity: 1; transform: none; pointer-events: auto; }
+
+/* =========================================================
+   3. iOS-style alert component
+   ========================================================= */
+.ios-backdrop {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+  background: rgba(30, 24, 18, .22);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  opacity: 0; transition: opacity .25s ease;
+}
+.ios-backdrop.light { background: rgba(0, 0, 0, .18); -webkit-backdrop-filter: none; backdrop-filter: none; }
+.ios-backdrop.show { opacity: 1; }
+.ios-alert {
+  width: 270px; border-radius: 14px; overflow: hidden; text-align: center;
+  background: rgba(246, 246, 246, .86);
+  -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, .14);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  color: #000;
+  transform: scale(1.1); opacity: 0;
+}
+.ios-backdrop.show .ios-alert { animation: iosPop .32s cubic-bezier(.17, .89, .32, 1.1) forwards; }
+.ios-backdrop.hide { opacity: 0; }
+@keyframes iosPop { from { transform: scale(1.1); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.ios-alert-body { padding: 19px 16px 18px; }
+.ios-alert-title { font-size: 17px; font-weight: 600; line-height: 22px; letter-spacing: -.41px; }
+.ios-alert-msg { font-size: 13px; line-height: 18px; margin-top: 3px; letter-spacing: -.08px; }
+.ios-alert-actions { display: flex; border-top: .5px solid rgba(60, 60, 67, .36); }
+.ios-alert-actions button {
+  flex: 1; height: 44px; border: 0; background: transparent; cursor: pointer;
+  font-size: 17px; color: var(--ios-blue); letter-spacing: -.41px; padding: 0 8px;
+  font-family: inherit;
+}
+.ios-alert-actions button + button { border-left: .5px solid rgba(60, 60, 67, .36); }
+.ios-alert-actions button.bold { font-weight: 600; }
+.ios-alert-actions button:active { background: rgba(0, 0, 0, .06); }
+.ios-alert-actions button:focus { outline: none; }
+.ios-alert-actions button:focus-visible { background: rgba(0, 0, 0, .05); }
+
+/* =========================================================
+   4. Screen 1 (intro) & cat screen
+   ========================================================= */
+#s-intro { justify-content: center; }
+.intro-bg { text-align: center; color: var(--muted); }
+.intro-bg .big { font-size: 84px; font-family: var(--emoji); animation: floaty 3s ease-in-out infinite; }
+.intro-bg p { margin-top: 10px; font-size: 15px; }
+@keyframes floaty { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+
+#s-cat { position: relative; padding: 0; overflow: hidden; background: var(--beige-soft); }
+.cat-fallback {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 140px; font-family: var(--emoji); background: var(--beige-soft);
+}
+.cat-img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  opacity: 0; transition: opacity .5s ease;
+}
+.cat-img.loaded { opacity: 1; }
+
+/* =========================================================
+   5. Scratch-card coupons
+   ========================================================= */
+.grid {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 12px;
+  width: 100%; margin-top: 22px;
+}
+.coupon {
+  width: calc(50% - 6px); max-width: 168px;
+  perspective: 900px; position: relative;
+  animation: cardIn .6s cubic-bezier(.2, .8, .2, 1) backwards;
+  transition: opacity .5s ease, filter .5s ease, transform .25s ease;
+  outline: none;
+}
+@media (min-width: 560px) { .coupon { width: calc(33.333% - 8px); } }
+@keyframes cardIn { from { opacity: 0; transform: translateY(16px) scale(.96); } to { opacity: 1; transform: none; } }
+.coupon:focus-visible .face { box-shadow: 0 0 0 3px var(--accent); }
+.coupon-inner {
+  position: relative; width: 100%; aspect-ratio: 5 / 6;
+  transform-style: preserve-3d; -webkit-transform-style: preserve-3d;
+  transition: transform .8s cubic-bezier(.2, .8, .2, 1);
+}
+.coupon.flipped .coupon-inner { transform: rotateY(180deg); }
+.face {
+  position: absolute; inset: 0; border-radius: 18px; overflow: hidden;
+  backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  box-shadow: var(--shadow); background: var(--card);
+}
+.face.back { transform: rotateY(180deg); }
+.prize {
+  position: absolute; inset: 6px; border-radius: 13px;
+  border: 1.5px dashed var(--beige);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 8px; gap: 6px;
+  background: linear-gradient(180deg, #fff 0%, #FCF8F2 100%);
+}
+.prize .p-kicker { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent-deep); font-weight: 600; }
+.prize .p-emoji { font-size: 42px; line-height: 1; font-family: var(--emoji); }
+.prize .p-title { font-size: 15px; font-weight: 700; letter-spacing: -.01em; line-height: 1.2; }
+.prize.nothing .p-title { font-size: 13px; }
+.scratch {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  touch-action: pan-y; cursor: grab; display: block; /* vertical swipes scroll the page, sideways swipes scratch */
+  transition: opacity .6s ease;
+}
+.scratch:active { cursor: grabbing; }
+.scratch.cleared { opacity: 0; pointer-events: none; }
+.coupon.won .face { box-shadow: 0 0 0 3px var(--accent), var(--shadow-lg); }
+.coupon.won { transform: scale(1.03); z-index: 2; }
+.coupon.locked { pointer-events: none; }
+.coupon.missed { opacity: .5; filter: grayscale(.35); }
+.badge {
+  position: absolute; top: -9px; left: 50%; transform: translateX(-50%);
+  font-size: 11px; font-weight: 700; letter-spacing: .04em;
+  padding: 4px 10px; border-radius: 999px; white-space: nowrap; z-index: 3;
+  opacity: 0; transition: opacity .4s ease .5s;
+}
+.coupon.won .badge.yours { opacity: 1; background: var(--text); color: #fff; }
+.coupon.missed .badge.miss { opacity: 1; background: var(--beige); color: var(--text); }
+
+/* =========================================================
+   6. Ticket (won coupon display)
+   ========================================================= */
+.ticket {
+  position: relative; width: 100%; max-width: 340px; margin-top: 22px;
+  background: var(--card); border-radius: 24px; box-shadow: var(--shadow-lg);
+  padding: 26px 22px 22px; text-align: center;
+  animation: ticketIn .7s cubic-bezier(.2, .9, .3, 1.2) both;
+}
+@keyframes ticketIn { from { opacity: 0; transform: translateY(18px) rotate(-2deg) scale(.95); } to { opacity: 1; transform: none; } }
+.ticket::before, .ticket::after {
+  content: ""; position: absolute; top: 64%; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--bg); transform: translateY(-50%);
+}
+.ticket::before { left: -12px; }
+.ticket::after { right: -12px; }
+.ticket .t-emoji { font-size: 64px; line-height: 1.1; font-family: var(--emoji); margin-top: 8px; }
+.ticket .t-title { font-size: 24px; font-weight: 800; letter-spacing: -.02em; margin-top: 8px; }
+.ticket .t-sep { border-top: 2px dashed var(--beige); margin: 22px -4px 14px; }
+.ticket .t-foot { font-size: 12px; color: var(--muted); }
+
+/* =========================================================
+   7. Rock-paper-scissors game
+   ========================================================= */
+.score {
+  display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 18px; width: 100%;
+}
+.score-box {
+  background: var(--card); border-radius: 18px; box-shadow: var(--shadow);
+  padding: 10px 18px; text-align: center; min-width: 100px;
+}
+.score-box .s-label { font-size: 12px; color: var(--muted); font-weight: 600; }
+.score-box .s-num { font-size: 32px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; }
+.score-box.bump { animation: bump .45s ease; }
+@keyframes bump { 40% { transform: scale(1.12); } }
+.score .vs { font-size: 13px; color: var(--muted); font-weight: 700; }
+
+.stage {
+  position: relative; width: 100%; max-width: 380px; aspect-ratio: 4 / 3; margin-top: 16px;
+  border-radius: 24px; overflow: hidden; background: #EFE6D8; box-shadow: var(--shadow);
+}
+.stage video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); display: block; }
+.stage.manual { aspect-ratio: auto; height: 104px; background: var(--card); }
+.stage.manual video, .stage.manual .live-pill { display: none; }
+.manual-idle { display: none; position: absolute; inset: 0; align-items: center; justify-content: center; font-size: 40px; gap: 14px; font-family: var(--emoji); }
+.stage.manual .manual-idle { display: flex; }
+.stage-msg {
+  position: absolute; inset: 0; display: flex; flex-direction: column; gap: 10px;
+  align-items: center; justify-content: center; text-align: center; padding: 16px;
+  background: #EFE6D8; color: var(--muted); font-size: 14px;
+}
+.stage-msg[hidden] { display: none; }
+.spinner {
+  width: 26px; height: 26px; border-radius: 50%;
+  border: 3px solid rgba(169, 130, 90, .25); border-top-color: var(--accent-deep);
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.live-pill {
+  position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%);
+  background: rgba(255, 255, 255, .88); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  padding: 7px 14px; border-radius: 999px; font-size: 14px; font-weight: 600; white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .1);
+}
+.countdown {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 42px; font-weight: 800; letter-spacing: -.02em; color: #fff;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, .35); background: rgba(43, 38, 34, .25);
+  opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.countdown.show { opacity: 1; }
+.countdown span { animation: cdPop .5s cubic-bezier(.2, .9, .3, 1.3); display: inline-block; }
+@keyframes cdPop { from { transform: scale(1.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.stage.manual .countdown { color: var(--text); text-shadow: none; background: var(--card); font-size: 34px; }
+
+.duel {
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+  width: 100%; max-width: 380px; margin-top: 16px;
+  background: var(--card); border-radius: 22px; box-shadow: var(--shadow); padding: 14px 10px;
+}
+.duel[hidden] { display: none; }
+.duel .side { text-align: center; }
+.duel .side .who { font-size: 12px; color: var(--muted); font-weight: 600; }
+.duel .side .hand { font-size: 58px; line-height: 1.15; font-family: var(--emoji); display: inline-block; }
+.duel .side .hand.pop { animation: handPop .5s cubic-bezier(.2, .9, .3, 1.4); }
+@keyframes handPop { from { transform: scale(.3) rotate(-20deg); opacity: 0; } to { transform: none; opacity: 1; } }
+.duel .mid { font-size: 13px; font-weight: 700; color: var(--muted); }
+.duel .result { grid-column: 1 / -1; text-align: center; font-weight: 700; font-size: 16px; margin-top: 6px; }
+
+.status { font-size: 14px; color: var(--muted); text-align: center; min-height: 20px; margin-top: 12px; }
+.status.warn { color: #B4583E; }
+
+.controls { display: flex; flex-direction: column; align-items: center; width: 100%; margin-top: 14px; }
+.move-row { display: flex; gap: 12px; justify-content: center; width: 100%; }
+.move-btn {
+  flex: 1; max-width: 104px; aspect-ratio: 1; border: 0; cursor: pointer;
+  border-radius: 22px; background: var(--card); box-shadow: var(--shadow);
+  font-size: 44px; font-family: var(--emoji); transition: transform .15s ease, opacity .2s;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+}
+.move-btn small { font-family: var(--font); font-size: 12px; font-weight: 600; color: var(--muted); }
+.move-btn:active { transform: scale(.94); }
+.move-btn:disabled { opacity: .45; cursor: default; }
+
+.history { list-style: none; padding: 0; margin: 16px 0 0; width: 100%; max-width: 380px; }
+.history li {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 10px 14px; background: var(--card); border-radius: 14px; margin-top: 8px;
+  font-size: 14px; box-shadow: 0 2px 8px rgba(90, 64, 30, .05);
+  animation: cardIn .4s ease both;
+}
+.history .h-moves { font-family: var(--emoji); font-size: 20px; display: flex; align-items: center; gap: 8px; }
+.history .h-moves small { font-family: var(--font); font-size: 12px; color: var(--muted); font-weight: 600; }
+.history .h-res { font-weight: 600; color: var(--muted); }
+.history .h-res.her { color: #4F8A5B; }
+.history .h-res.me { color: #B4583E; }
+
+/* =========================================================
+   8. Closing screen, toast, confetti
+   ========================================================= */
+.end-emoji { font-size: 76px; font-family: var(--emoji); animation: floaty 3s ease-in-out infinite; }
+.end-note { font-size: 16px; color: var(--text); text-align: center; margin-top: 18px; max-width: 330px; line-height: 1.55; }
+.end-small { font-size: 13px; color: var(--muted); text-align: center; margin-top: 10px; }
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom)); z-index: 70;
+  transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
+  max-width: calc(100% - 32px); width: max-content;
+  background: var(--card); color: var(--text); font-size: 14px; font-weight: 500;
+  padding: 11px 18px; border-radius: 999px; box-shadow: var(--shadow-lg);
+  transition: opacity .3s ease, transform .3s ease; text-align: center;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.toast a { color: var(--accent-deep); font-weight: 700; }
+
+#confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 60; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+</style>
+</head>
+<body>
+<main id="app">
+
+  <!-- SCREEN 1: intro (alert is injected on top) -->
+  <section class="screen" id="s-intro" aria-label="Intro">
+    <div class="intro-bg">
+      <div class="big">🥺</div>
+      <p>a little something, just for you</p>
+    </div>
+  </section>
+
+  <!-- SCREEN 2: cancel -> cat -->
+  <section class="screen" id="s-cat" aria-label="Oops">
+    <div class="cat-fallback" aria-hidden="true">😿</div>
+    <img class="cat-img" id="cat-img" alt="A very disappointed cat">
+  </section>
+
+  <!-- SCREEN 3: coupons -->
+  <section class="screen" id="s-coupons" aria-label="Pick a coupon">
+    <div class="wrap">
+      <div class="kicker">yay, apology accepted (ish) ✨</div>
+      <h1 class="title">Congrats! 🎉</h1>
+      <p class="subtitle">pls select one of the following coupons!</p>
+      <p class="hint" id="coupon-hint">tap or scratch sideways · you only get one 👀</p>
+      <div class="grid" id="grid"></div>
+      <div class="btn-stack fade-hidden" id="claim-wrap">
+        <button class="btn btn-primary btn-block" id="claim-btn">See my coupon →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCREEN 4: won coupon -->
+  <section class="screen" id="s-won" aria-label="Your coupon">
+    <div class="wrap center-v" style="flex:1">
+      <div class="kicker" id="won-kicker">you got</div>
+      <h1 class="title" id="won-title">It's yours 💛</h1>
+      <div id="won-ticket-slot" style="width:100%;display:flex;justify-content:center"></div>
+      <p class="subtitle" id="won-sub" style="margin-top:18px"></p>
+      <div class="btn-stack">
+        <button class="btn btn-primary btn-block" id="double-btn">Double or Nothing? 🎲</button>
+        <button class="btn btn-secondary btn-block" id="keep-btn">Keep it 💛</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCREEN 5: rock paper scissors -->
+  <section class="screen" id="s-game" aria-label="Double or nothing">
+    <div class="wrap">
+      <div class="kicker">best of 3 · first to 2</div>
+      <h1 class="title" id="game-title">Double or Nothing 🎲</h1>
+      <p class="subtitle" id="game-sub"></p>
+
+      <div class="score">
+        <div class="score-box" id="score-her-box"><div class="s-label">You 💁‍♀️</div><div class="s-num" id="score-her">0</div></div>
+        <div class="vs">vs</div>
+        <div class="score-box" id="score-me-box"><div class="s-label">Me 🙇‍♂️</div><div class="s-num" id="score-me">0</div></div>
+      </div>
+
+      <div class="stage" id="stage">
+        <video id="video" playsinline muted autoplay></video>
+        <div class="manual-idle" aria-hidden="true"><span>✊</span><span>✋</span><span>✌️</span></div>
+        <div class="live-pill" id="live-pill">Show me your hand ✋</div>
+        <div class="stage-msg" id="stage-msg"><div class="spinner"></div><div id="stage-msg-text">Starting camera…</div></div>
+        <div class="countdown" id="countdown"></div>
+      </div>
+
+      <div class="duel" id="duel" hidden>
+        <div class="side"><div class="who">You</div><div class="hand" id="duel-her">✊</div></div>
+        <div class="mid">vs</div>
+        <div class="side"><div class="who">Me</div><div class="hand" id="duel-me">✊</div></div>
+        <div class="result" id="duel-result"></div>
+      </div>
+
+      <p class="status" id="game-status"></p>
+
+      <div class="controls">
+        <button class="btn btn-primary btn-block" id="ready-btn" disabled>Ready?</button>
+        <div class="move-row" id="move-row" hidden>
+          <button class="move-btn" data-move="rock">✊<small>Stone</small></button>
+          <button class="move-btn" data-move="paper">✋<small>Paper</small></button>
+          <button class="move-btn" data-move="scissors">✌️<small>Scissors</small></button>
+        </div>
+        <button class="link-btn" id="mode-toggle">Use buttons instead</button>
+      </div>
+
+      <ol class="history" id="history"></ol>
+    </div>
+  </section>
+
+  <!-- SCREEN 6: closing -->
+  <section class="screen" id="s-end" aria-label="The end">
+    <div class="wrap center-v" style="flex:1" id="end-content"></div>
+  </section>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<canvas id="confetti" aria-hidden="true"></canvas>
+
+<script type="module">
+/* =========================================================
+   CONFIG — edit these
+   ========================================================= */
+const EMAIL_TO = 'vermaalankrita2006@gmail.com';
+const EMAIL_SUBJECT = 'Gift Coupon';
+const FORMSUBMIT_URL = `https://formsubmit.co/ajax/${EMAIL_TO}`;
+
+const CAT_URL = 'https://cataas.com/cat/cute?width=800';
+
+const MP_VERSION = '0.10.14';
+const MP_BASE = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VERSION}`;
+const MP_MODULE_URLS = [`${MP_BASE}/vision_bundle.mjs`, MP_BASE];
+const MP_WASM = `${MP_BASE}/wasm`;
+const MP_MODEL = 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
+
+const PRIZES = [
+  { title: '1 Free Meal', emoji: '🍝' },
+  { title: '1 Free Dessert', emoji: '🍰' },
+  { title: '1 Date Night', emoji: '🌙' },
+  { title: '1 Activity', emoji: '🎳' },
+  { title: 'OOPS! NOTHING HERE', emoji: '😂', nothing: true },
+].map(p => ({ ...p, label: `${p.title} ${p.emoji}` }));
+
+// Soft foil gradients for the scratch covers
+const FOILS = [
+  ['#EED3AE', '#C8A27A', '#AE8558'], // gold
+  ['#F3CFC8', '#DFA39C', '#C98580'], // rose
+  ['#D6E2CB', '#AFC3A0', '#8FA880'], // sage
+  ['#DCD0E8', '#BBA9D0', '#9F8BBA'], // lavender
+  ['#C9DAE6', '#9DB8CC', '#7E9DB4'], // dusty blue
+];
+
+/* =========================================================
+   Helpers
+   ========================================================= */
+const $ = sel => document.querySelector(sel);
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const shuffle = arr => { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const escapeHTML = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const buzz = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch (_) {} };
+const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+
+/* =========================================================
+   App state + screen state machine
+   ========================================================= */
+const state = {
+  screen: null,
+  prize: null,          // coupon picked from the scratch cards
+  finalPrize: null,     // coupon after double-or-nothing (if won)
+  cardsBuilt: false,
+};
+
+const SCREENS = {
+  intro: { el: '#s-intro', enter: enterIntro },
+  cat: { el: '#s-cat', enter: enterCat },
+  coupons: { el: '#s-coupons', enter: enterCoupons },
+  won: { el: '#s-won', enter: enterWon },
+  game: { el: '#s-game', enter: enterGame },
+  end: { el: '#s-end', enter: () => {} },
+};
+
+function go(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const target = SCREENS[name];
+  state.screen = name;
+  $(target.el).classList.add('active');
+  window.scrollTo(0, 0);
+  target.enter();
+}
+
+/* =========================================================
+   iOS alert component
+   ========================================================= */
+function showAlert({ title, message, buttons, light = false }) {
+  const backdrop = document.createElement('div');
+  backdrop.className = 'ios-backdrop' + (light ? ' light' : '');
+  backdrop.innerHTML = `
+    <div class="ios-alert" role="alertdialog" aria-modal="true">
+      <div class="ios-alert-body">
+        <div class="ios-alert-title"></div>
+        <div class="ios-alert-msg"></div>
+      </div>
+      <div class="ios-alert-actions"></div>
+    </div>`;
+  backdrop.querySelector('.ios-alert-title').textContent = title;
+  backdrop.querySelector('.ios-alert-msg').textContent = message;
+  const actions = backdrop.querySelector('.ios-alert-actions');
+  let closed = false;
+  buttons.forEach(b => {
+    const btn = document.createElement('button');
+    btn.textContent = b.text;
+    if (b.bold) btn.classList.add('bold');
+    btn.addEventListener('click', () => {
+      if (closed) return;
+      closed = true;
+      backdrop.classList.add('hide');
+      setTimeout(() => backdrop.remove(), 220);
+      b.onClick && b.onClick();
+    });
+    actions.appendChild(btn);
+  });
+  document.body.appendChild(backdrop);
+  requestAnimationFrame(() => requestAnimationFrame(() => backdrop.classList.add('show')));
+}
+
+/* =========================================================
+   Screen 1: intro
+   ========================================================= */
+function enterIntro() {
+  setTimeout(() => showAlert({
+    title: 'Hey you 🥺',
+    message: 'Please accept the apology',
+    buttons: [
+      { text: 'Cancel', onClick: () => go('cat') },
+      { text: 'Continue', bold: true, onClick: () => go('coupons') },
+    ],
+  }), 350);
+}
+
+/* =========================================================
+   Screen 2: cat (cancel path)
+   ========================================================= */
+function enterCat() {
+  const img = $('#cat-img');
+  img.classList.remove('loaded');
+  let done = false;
+  const showAlertOnce = () => {
+    if (done) return; done = true;
+    showAlert({
+      title: 'Oop! 🙀',
+      message: 'Try again',
+      light: true,
+      buttons: [{ text: 'Try again', bold: true, onClick: () => go('intro') }],
+    });
+  };
+  img.onload = () => { img.classList.add('loaded'); setTimeout(showAlertOnce, 500); };
+  img.onerror = () => { img.removeAttribute('src'); setTimeout(showAlertOnce, 300); }; // 😿 fallback stays visible
+  img.src = `${CAT_URL}&t=${Date.now()}`; // new cat every time
+  setTimeout(showAlertOnce, 2500); // don't wait forever on a slow network
+}
+
+/* =========================================================
+   Screen 3: scratch-card coupons
+   ========================================================= */
+const cards = [];
+
+function enterCoupons() {
+  if (state.cardsBuilt) return;
+  state.cardsBuilt = true;
+  const grid = $('#grid');
+  shuffle(PRIZES).forEach((prize, i) => {
+    const el = document.createElement('div');
+    el.className = 'coupon';
+    el.tabIndex = 0;
+    el.setAttribute('role', 'button');
+    el.setAttribute('aria-label', `Coupon ${i + 1}: scratch or tap to reveal`);
+    el.style.animationDelay = `${i * 80}ms`;
+    const prizeHTML = `
+      <div class="prize${prize.nothing ? ' nothing' : ''}">
+        <div class="p-kicker">coupon</div>
+        <div class="p-emoji">${prize.emoji}</div>
+        <div class="p-title">${escapeHTML(prize.title)}</div>
+      </div>`;
+    el.innerHTML = `
+      <span class="badge yours">yours ✨</span>
+      <span class="badge miss">missed 👀</span>
+      <div class="coupon-inner">
+        <div class="face front">${prizeHTML}<canvas class="scratch"></canvas></div>
+        <div class="face back">${prizeHTML}</div>
+      </div>`;
+    grid.appendChild(el);
+    const card = { el, prize, canvas: el.querySelector('canvas'), foil: FOILS[i % FOILS.length], touched: false };
+    cards.push(card);
+    bindScratch(card);
+    el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); reveal(card, 'tap'); } });
+  });
+  // Size canvases once the section is laid out
+  requestAnimationFrame(() => cards.forEach(c => drawFoil(c)));
+  window.addEventListener('resize', () => cards.forEach(c => { if (!c.touched && !state.prize) drawFoil(c); }));
+  $('#claim-btn').addEventListener('click', () => go('won'));
+}
+
+/** Paint the foil cover (gradient + stripes + sparkles + gift + label) */
+function drawFoil(card) {
+  const { canvas, foil } = card;
+  // offsetWidth/Height = layout size (unaffected by entry/flip transforms)
+  const r = { width: canvas.offsetWidth, height: canvas.offsetHeight };
+  if (!r.width) return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = Math.round(r.width * dpr);
+  canvas.height = Math.round(r.height * dpr);
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.globalCompositeOperation = 'source-over';
+  const w = r.width, h = r.height;
+
+  const g = ctx.createLinearGradient(0, 0, w, h);
+  g.addColorStop(0, foil[0]); g.addColorStop(.55, foil[1]); g.addColorStop(1, foil[2]);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+
+  // diagonal stripes
+  ctx.save();
+  ctx.globalAlpha = .13; ctx.strokeStyle = '#fff'; ctx.lineWidth = 7;
+  for (let x = -h; x < w + h; x += 18) { ctx.beginPath(); ctx.moveTo(x, h); ctx.lineTo(x + h, 0); ctx.stroke(); }
+  ctx.restore();
+
+  // sparkles (seeded so redraws look the same)
+  let seed = foil[0].charCodeAt(2) * 97;
+  const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+  ctx.fillStyle = 'rgba(255,255,255,.6)';
+  for (let i = 0; i < 22; i++) { ctx.beginPath(); ctx.arc(rnd() * w, rnd() * h, rnd() * 1.8 + .5, 0, Math.PI * 2); ctx.fill(); }
+
+  // gift badge
+  const cx = w / 2, cy = h * .43, rad = Math.min(w, h) * .2;
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,.12)'; ctx.shadowBlur = 12; ctx.shadowOffsetY = 4;
+  ctx.fillStyle = 'rgba(255,255,255,.92)';
+  ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `${Math.round(rad * 1.05)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+  ctx.fillText('🎁', cx, cy + rad * .06);
+
+  const font = '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif';
+  ctx.fillStyle = '#fff';
+  ctx.shadowColor = 'rgba(0,0,0,.15)'; ctx.shadowBlur = 6;
+  ctx.font = `700 ${Math.max(14, Math.round(w * .1))}px ${font}`;
+  ctx.fillText('Scratch me', cx, h * .74);
+  ctx.globalAlpha = .9;
+  ctx.font = `500 11px ${font}`;
+  ctx.fillText('or tap ✨', cx, h * .74 + 19);
+  ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+}
+
+/** Fraction of the cover that has been scratched away (sampled) */
+function clearedRatio(canvas) {
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+  let clear = 0, total = 0;
+  for (let i = 3; i < data.length; i += 4 * 10) { total++; if (data[i] < 50) clear++; }
+  return total ? clear / total : 0;
+}
+
+/** Pointer handling: drag = scratch, quick tap = 3D flip */
+function bindScratch(card) {
+  const { canvas } = card;
+  const ctx = () => canvas.getContext('2d', { willReadFrequently: true });
+  let s = null;
+  const pt = e => {
+    const r = canvas.getBoundingClientRect();
+    const sx = canvas.offsetWidth / (r.width || 1), sy = canvas.offsetHeight / (r.height || 1);
+    return { x: (e.clientX - r.left) * sx, y: (e.clientY - r.top) * sy };
+  };
+
+  canvas.addEventListener('pointerdown', e => {
+    if (state.prize) return;
+    if (e.pointerType !== 'touch') e.preventDefault();
+    try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+    s = { id: e.pointerId, last: pt(e), dist: 0, t0: performance.now(), moves: 0 };
+  });
+
+  canvas.addEventListener('pointermove', e => {
+    if (!s || e.pointerId !== s.id || state.prize) return;
+    e.preventDefault();
+    const p = pt(e);
+    s.dist += Math.hypot(p.x - s.last.x, p.y - s.last.y);
+    if (s.dist > 6) {
+      const c = ctx();
+      c.globalCompositeOperation = 'destination-out';
+      c.lineWidth = 30; c.lineCap = 'round'; c.lineJoin = 'round';
+      c.beginPath(); c.moveTo(s.last.x, s.last.y); c.lineTo(p.x, p.y); c.stroke();
+      card.touched = true;
+      if (++s.moves % 6 === 0 && clearedRatio(canvas) >= .5) { s = null; reveal(card, 'scratch'); return; }
+    }
+    s.last = p;
+  });
+
+  const end = e => {
+    if (!s || e.pointerId !== s.id) return;
+    const tap = s.dist < 8 && performance.now() - s.t0 < 500;
+    s = null;
+    if (state.prize) return;
+    if (tap) reveal(card, 'tap');
+    else if (card.touched && clearedRatio(canvas) >= .5) reveal(card, 'scratch');
+  };
+  canvas.addEventListener('pointerup', end);
+  canvas.addEventListener('pointercancel', () => { s = null; });
+}
+
+/** Reveal the chosen coupon, lock the rest, email it */
+function reveal(card, how) {
+  if (state.prize) return;
+  state.prize = card.prize;
+  buzz(30);
+  card.el.classList.add('won');
+  if (how === 'tap') card.el.classList.add('flipped');
+  else card.canvas.classList.add('cleared');
+
+  const others = cards.filter(c => c !== card);
+  others.forEach(c => c.el.classList.add('locked'));
+
+  const hint = $('#coupon-hint');
+  hint.textContent = card.prize.nothing ? 'LOL… nothing 😂 but wait, there’s hope' : `Ooh, you got ${card.prize.label}!`;
+  hint.style.color = 'var(--text)';
+
+  sendCoupon(card.prize.label, `Coupon redeemed: ${card.prize.label}`);
+
+  // Nice touch: flip the others to show what she missed
+  setTimeout(() => others.forEach((c, i) => setTimeout(() => {
+    c.canvas.classList.add('cleared');
+    c.el.classList.add('flipped', 'missed');
+  }, i * 150)), 1200);
+  setTimeout(() => {
+    const wrap = $('#claim-wrap');
+    wrap.classList.add('show');
+    // on phones the button lands below the fold (5 cards = 3 rows), so bring it into view
+    wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, 2300);
+}
+
+/* =========================================================
+   Email (FormSubmit AJAX) + toast
+   ========================================================= */
+async function sendCoupon(coupon, message) {
+  try {
+    const res = await fetch(FORMSUBMIT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ _subject: EMAIL_SUBJECT, coupon, message, _template: 'table', _captcha: 'false' }),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || String(json.success) !== 'true') throw new Error(json.message || `HTTP ${res.status}`);
+    showToast('Coupon sent to your inbox 💌');
+  } catch (err) {
+    const href = `mailto:${EMAIL_TO}?subject=${encodeURIComponent(EMAIL_SUBJECT)}&body=${encodeURIComponent(message)}`;
+    showToast(`Couldn’t auto-send 🙈 <a href="${href}">Tap to email it</a>`, 9000, true);
+  }
+}
+
+let toastTimer = 0;
+function showToast(content, duration = 3200, html = false) {
+  const t = $('#toast');
+  if (html) t.innerHTML = content; else t.textContent = content;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), duration);
+}
+
+/* =========================================================
+   Ticket renderer + Screen 4 (won)
+   ========================================================= */
+function ticketHTML(p, kicker = 'your coupon') {
+  return `
+    <div class="ticket">
+      <div class="kicker">${escapeHTML(kicker)}</div>
+      <div class="t-emoji">${p.emoji}</div>
+      <div class="t-title">${escapeHTML(p.title)}</div>
+      <div class="t-sep"></div>
+      <div class="t-foot">${p.nothing ? 'valid for: absolutely nothing 😌' : 'valid forever · redeemable with me, anytime 💛'}</div>
+    </div>`;
+}
+
+function enterWon() {
+  const p = state.prize;
+  $('#won-ticket-slot').innerHTML = ticketHTML(p);
+  if (p.nothing) {
+    $('#won-kicker').textContent = 'well…';
+    $('#won-title').textContent = 'You got nothing 😂';
+    $('#won-sub').textContent = 'But I’m feeling generous. Beat me at Stone Paper Scissors and win a real one.';
+    $('#double-btn').textContent = 'Play for a real coupon 🎲';
+  } else {
+    $('#won-kicker').textContent = 'you got';
+    $('#won-title').textContent = 'It’s yours 💛';
+    $('#won-sub').textContent = 'Or… feeling lucky? Win best of 3 and it’s doubled. Lose and it’s gone.';
+    $('#double-btn').textContent = 'Double or Nothing? 🎲';
+  }
+}
+$('#double-btn').addEventListener('click', () => go('game'));
+$('#keep-btn').addEventListener('click', () => { renderEnd('keep'); go('end'); });
+
+/* =========================================================
+   Screen 6: closing
+   ========================================================= */
+function renderEnd(kind) {
+  const el = $('#end-content');
+  if (kind === 'keep') {
+    const p = state.prize;
+    el.innerHTML = p.nothing
+      ? `<div class="end-emoji">🫠</div><h1 class="title">You kept… nothing.</h1>
+         <p class="end-note">Bold choice 😂 But honestly, I’m really sorry. You deserve way more than a coupon. ❤️</p>`
+      : `<div class="kicker">deal 🤝</div><h1 class="title">It’s officially yours 💛</h1>${ticketHTML(p)}
+         <p class="end-note">Redeem it whenever you want. And again — I’m really, really sorry. Thank you for being you. 🫶</p>`;
+  } else if (kind === 'win') {
+    el.innerHTML = `<div class="kicker">winner winner 🏆</div><h1 class="title">You beat me!</h1>${ticketHTML(state.finalPrize, state.prize.nothing ? 'your real coupon' : 'your upgraded coupon')}
+      <p class="end-note">Okay, you’re way too good at this. Still sorry, still yours 💛</p>`;
+  } else {
+    el.innerHTML = `<div class="end-emoji">😈</div><h1 class="title">Coupon: gone 💨</h1>
+      <p class="end-note">fine, I’m still sorry ❤️</p>
+      <p class="end-small">(ask nicely and maybe it comes back 👀)</p>`;
+  }
+  el.insertAdjacentHTML('beforeend', `<p class="end-small" style="margin-top:28px">— made with love, and a lot of guilt 🥺</p>`);
+}
+
+/* =========================================================
+   Screen 5: Rock Paper Scissors (best of 3, first to 2)
+   ========================================================= */
+const MOVES = {
+  rock: { emoji: '✊', name: 'Stone' },
+  paper: { emoji: '✋', name: 'Paper' },
+  scissors: { emoji: '✌️', name: 'Scissors' },
+};
+const BEATS = { rock: 'scissors', paper: 'rock', scissors: 'paper' };
+
+const game = {
+  her: 0, me: 0, round: 0, busy: false, over: false,
+  mode: 'camera',        // 'camera' | 'buttons'
+  stream: null, landmarker: null, raf: 0, lastVideoTime: -1,
+  buffer: [],            // [{t, g}] recent gesture readings
+  camToken: 0,           // invalidates stale async camera starts
+  roundToken: 0,         // invalidates a round interrupted by a mode switch
+};
+
+function enterGame() {
+  Object.assign(game, { her: 0, me: 0, round: 0, busy: false, over: false, buffer: [] });
+  $('#score-her').textContent = '0';
+  $('#score-me').textContent = '0';
+  $('#history').innerHTML = '';
+  $('#duel').hidden = true;
+  setStatus('');
+  $('#game-title').textContent = state.prize.nothing ? 'Play for a real one 🎲' : 'Double or Nothing 🎲';
+  $('#game-sub').textContent = state.prize.nothing
+    ? 'Win → a random real coupon. Lose → still nothing 😅'
+    : `Win → 2x ${state.prize.label}. Lose → it’s gone 😈`;
+  if (game.mode === 'camera') switchToCamera(); else switchToButtons();
+}
+
+/* ---- mode switching ---- */
+function switchToCamera() {
+  game.mode = 'camera';
+  $('#stage').classList.remove('manual');
+  $('#ready-btn').hidden = false;
+  $('#move-row').hidden = true;
+  $('#mode-toggle').textContent = 'Use buttons instead';
+  setReady(false);
+  startCamera();
+}
+
+function switchToButtons(msg = '') {
+  game.mode = 'buttons';
+  stopCamera();
+  $('#stage').classList.add('manual');
+  $('#stage-msg').hidden = true;
+  $('#ready-btn').hidden = true;
+  $('#move-row').hidden = false;
+  $('#mode-toggle').textContent = 'Try the camera instead 📷';
+  setMoveButtons(!game.busy && !game.over);
+  setStatus(msg || 'Tap your move 👇', !!msg);
+}
+
+$('#mode-toggle').addEventListener('click', () => {
+  if (game.over) return;
+  game.busy = false;
+  game.roundToken++;
+  hideCountdown();
+  if (game.mode === 'camera') switchToButtons(); else switchToCamera();
+});
+
+function setStatus(text, warn = false) {
+  const s = $('#game-status');
+  s.textContent = text;
+  s.classList.toggle('warn', warn);
+}
+function setReady(enabled, label) {
+  const b = $('#ready-btn');
+  b.disabled = !enabled;
+  if (label) b.textContent = label;
+}
+function setMoveButtons(enabled) {
+  document.querySelectorAll('.move-btn').forEach(b => { b.disabled = !enabled; });
+}
+function setStageMsg(text) {
+  const m = $('#stage-msg');
+  if (text == null) { m.hidden = true; return; }
+  m.hidden = false;
+  $('#stage-msg-text').textContent = text;
+}
+
+/* ---- camera + MediaPipe ---- */
+async function loadHandLandmarker() {
+  if (game.landmarker) return game.landmarker;
+  let vision = null, lastErr = null;
+  for (const url of MP_MODULE_URLS) {
+    try { vision = await import(url); break; } catch (e) { lastErr = e; }
+  }
+  if (!vision) throw lastErr || new Error('MediaPipe failed to load');
+  const lib = vision.FilesetResolver ? vision : vision.default;
+  const { FilesetResolver, HandLandmarker } = lib;
+  const fileset = await FilesetResolver.forVisionTasks(MP_WASM);
+  const opts = delegate => ({
+    baseOptions: { modelAssetPath: MP_MODEL, delegate },
+    runningMode: 'VIDEO', numHands: 1,
+    minHandDetectionConfidence: .5, minHandPresenceConfidence: .5, minTrackingConfidence: .5,
+  });
+  try { game.landmarker = await HandLandmarker.createFromOptions(fileset, opts('GPU')); }
+  catch (_) { game.landmarker = await HandLandmarker.createFromOptions(fileset, opts('CPU')); }
+  return game.landmarker;
+}
+
+async function startCamera() {
+  const token = ++game.camToken;
+  const stale = () => token !== game.camToken || game.mode !== 'camera' || game.over;
+  setStageMsg('Starting camera…');
+  setStatus('');
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw Object.assign(new Error('No camera API'), { name: 'NoCamera' });
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false,
+    });
+    if (stale()) { stream.getTracks().forEach(t => t.stop()); return; }
+    game.stream = stream;
+    const video = $('#video');
+    video.srcObject = stream;
+    await video.play().catch(() => {});
+
+    setStageMsg('Loading hand magic… ✨');
+    await withTimeout(loadHandLandmarker(), 30000);
+    if (stale()) return;
+
+    setStageMsg(null);
+    game.lastVideoTime = -1;
+    cancelAnimationFrame(game.raf);
+    detectLoop();
+    setReady(!game.busy, game.round ? 'Next round' : 'Ready?');
+    setStatus('Show your hand to the camera, then tap Ready');
+  } catch (err) {
+    if (token !== game.camToken) return;
+    const denied = err && (err.name === 'NotAllowedError' || err.name === 'SecurityError' || err.name === 'PermissionDeniedError');
+    const noCam = err && (err.name === 'NotFoundError' || err.name === 'NoCamera' || err.name === 'OverconstrainedError');
+    switchToButtons(
+      denied ? 'No camera access — no worries, tap to play 👇'
+      : noCam ? 'No camera found — tap to play 👇'
+      : 'Camera magic didn’t load — tap to play 👇'
+    );
+  }
+}
+
+function stopCamera(dispose = false) {
+  game.camToken++;
+  cancelAnimationFrame(game.raf);
+  game.raf = 0;
+  if (game.stream) { game.stream.getTracks().forEach(t => t.stop()); game.stream = null; }
+  const video = $('#video');
+  if (video) { try { video.pause(); } catch (_) {} video.srcObject = null; }
+  if (dispose && game.landmarker) { try { game.landmarker.close(); } catch (_) {} game.landmarker = null; }
+}
+
+function detectLoop() {
+  if (!game.stream || !game.landmarker) return;
+  const v = $('#video');
+  if (v.readyState >= 2 && v.currentTime !== game.lastVideoTime) {
+    game.lastVideoTime = v.currentTime;
+    try {
+      const res = game.landmarker.detectForVideo(v, performance.now());
+      const lm = res && res.landmarks && res.landmarks[0];
+      const g = lm ? classifyGesture(lm) : null;
+      const now = performance.now();
+      game.buffer.push({ t: now, g });
+      while (game.buffer.length && game.buffer[0].t < now - 1500) game.buffer.shift();
+      $('#live-pill').textContent = !lm ? 'Show me your hand ✋' : g ? `${MOVES[g].emoji} ${MOVES[g].name}` : 'Hmm… 🤔';
+    } catch (_) { /* skip frame */ }
+  }
+  game.raf = requestAnimationFrame(detectLoop);
+}
+
+/** Landmarks -> 'rock' | 'paper' | 'scissors' | null */
+function classifyGesture(lm) {
+  const d = (a, b) => Math.hypot(lm[a].x - lm[b].x, lm[a].y - lm[b].y, (lm[a].z - lm[b].z) * .5);
+  // A finger is extended when its tip is farther from the wrist than its PIP joint
+  const ext = (tip, pip) => d(tip, 0) > d(pip, 0) * 1.08;
+  const index = ext(8, 6), middle = ext(12, 10), ring = ext(16, 14), pinky = ext(20, 18);
+  // Thumb: tip farther from pinky base than its IP joint, and away from the index base
+  const thumb = d(4, 17) > d(3, 17) * 1.05 && d(4, 5) > d(0, 9) * .45;
+  const count = [thumb, index, middle, ring, pinky].filter(Boolean).length;
+
+  if (index && middle && !ring && !pinky) return 'scissors';
+  if (count <= 1) return 'rock';
+  if (count >= 4) return 'paper';
+  if (index && middle && ring && !pinky) return 'paper'; // 3 fingers up: closest to paper
+  return null;
+}
+
+/** Most frequent gesture in the last `ms` milliseconds */
+function stableGesture(ms = 500) {
+  const now = performance.now();
+  const counts = {};
+  let hits = 0;
+  game.buffer.forEach(({ t, g }) => { if (t >= now - ms && g) { counts[g] = (counts[g] || 0) + 1; hits++; } });
+  if (hits < 2) return null;
+  return Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
+}
+
+/* ---- countdown ---- */
+function showCountdown(text) {
+  const c = $('#countdown');
+  c.innerHTML = `<span>${escapeHTML(text)}</span>`;
+  c.classList.add('show');
+}
+function hideCountdown() { $('#countdown').classList.remove('show'); }
+
+async function runCountdown(step, rt) {
+  // bail out (and don't re-show the overlay) if a mode switch cancelled this round
+  for (const w of ['Stone…', 'Paper…', 'Scissors…']) { if (rt !== game.roundToken) return; showCountdown(w); await wait(step); }
+  if (rt === game.roundToken) showCountdown('Shoot!');
+}
+
+/* ---- rounds ---- */
+async function cameraRound() {
+  if (game.busy || game.over || game.mode !== 'camera') return;
+  game.busy = true;
+  setReady(false);
+  setStatus('');
+  const rt = ++game.roundToken;
+  await runCountdown(700, rt);
+  await wait(450); // give her a beat to throw at "Shoot!"
+  if (rt !== game.roundToken) return;
+  const g = stableGesture(500);
+  hideCountdown();
+  if (!g) {
+    setStatus('Couldn’t see your hand, retry 🙈', true);
+    game.busy = false;
+    setReady(true, 'Retry');
+    return;
+  }
+  resolveRound(g);
+}
+
+async function buttonRound(move) {
+  if (game.busy || game.over) return;
+  game.busy = true;
+  setMoveButtons(false);
+  const rt = ++game.roundToken;
+  await runCountdown(300, rt);
+  await wait(250);
+  if (rt !== game.roundToken) return;
+  hideCountdown();
+  resolveRound(move);
+}
+
+$('#ready-btn').addEventListener('click', cameraRound);
+document.querySelectorAll('.move-btn').forEach(b => b.addEventListener('click', () => buttonRound(b.dataset.move)));
+
+function resolveRound(her) {
+  const keys = Object.keys(MOVES);
+  const me = keys[Math.floor(Math.random() * keys.length)];
+  game.round++;
+  const outcome = her === me ? 'tie' : BEATS[her] === me ? 'her' : 'me';
+  if (outcome === 'her') game.her++;
+  if (outcome === 'me') game.me++;
+
+  // duel display
+  $('#duel').hidden = false;
+  const hEl = $('#duel-her'), mEl = $('#duel-me');
+  hEl.textContent = MOVES[her].emoji; mEl.textContent = MOVES[me].emoji;
+  [hEl, mEl].forEach(e => { e.classList.remove('pop'); void e.offsetWidth; e.classList.add('pop'); });
+  const resultText = outcome === 'tie' ? 'Tie — doesn’t count, go again 🤝'
+    : outcome === 'her' ? 'You win this round! 🎉' : 'I win this round 😏';
+  $('#duel-result').textContent = resultText;
+
+  // scoreboard
+  $('#score-her').textContent = game.her;
+  $('#score-me').textContent = game.me;
+  if (outcome !== 'tie') {
+    const box = $(outcome === 'her' ? '#score-her-box' : '#score-me-box');
+    box.classList.remove('bump'); void box.offsetWidth; box.classList.add('bump');
+  }
+  buzz(outcome === 'her' ? [20, 40, 20] : 25);
+
+  // history
+  const li = document.createElement('li');
+  li.innerHTML = `<span>Round ${game.round}</span><span class="h-moves">${MOVES[her].emoji}<small>vs</small>${MOVES[me].emoji}</span>
+    <span class="h-res ${outcome}">${outcome === 'tie' ? 'Tie' : outcome === 'her' ? 'You' : 'Me'}</span>`;
+  $('#history').prepend(li);
+
+  if (game.her >= 2 || game.me >= 2) {
+    game.over = true;
+    setReady(false); setMoveButtons(false);
+    $('#mode-toggle').hidden = true;
+    setStatus(game.her >= 2 ? 'Game over — you win! 🏆' : 'Game over…');
+    stopCamera(true);
+    setTimeout(endGame, 1600);
+    return;
+  }
+  setStatus(`First to 2 · ${game.her} – ${game.me}`);
+  const rt = game.roundToken;
+  setTimeout(() => {
+    if (rt !== game.roundToken) return; // a mode switch already reset the round
+    game.busy = false;
+    if (game.mode === 'camera') setReady(!!game.landmarker && !!game.stream, 'Next round');
+    else setMoveButtons(true);
+  }, 900);
+}
+
+function endGame() {
+  if (game.her >= 2) {
+    const base = state.prize;
+    let message;
+    if (base.nothing) {
+      const real = PRIZES.filter(p => !p.nothing);
+      state.finalPrize = real[Math.floor(Math.random() * real.length)];
+      message = `Won a real coupon: ${state.finalPrize.label}`;
+    } else {
+      state.finalPrize = { ...base, title: `2x ${base.title}`, emoji: base.emoji + base.emoji, label: `2x ${base.label}` };
+      message = `DOUBLE: 2x ${base.label}`;
+    }
+    sendCoupon(state.finalPrize.label, message);
+    renderEnd('win');
+    go('end');
+    confetti();
+  } else {
+    showAlert({
+      title: 'OOPS! YOU GOT GREEDY 😈',
+      message: state.prize.nothing ? 'Nothing stays nothing… 😅' : 'The coupon is gone…',
+      buttons: [{ text: 'OK', bold: true, onClick: () => { renderEnd('greedy'); go('end'); } }],
+    });
+  }
+}
+
+/* =========================================================
+   Confetti (tiny canvas implementation)
+   ========================================================= */
+function confetti() {
+  const c = $('#confetti');
+  const ctx = c.getContext('2d');
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const W = window.innerWidth, H = window.innerHeight;
+  c.width = W * dpr; c.height = H * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const colors = ['#C8A27A', '#E8DCC8', '#DFA39C', '#AFC3A0', '#BBA9D0', '#9DB8CC', '#F2C14E', '#2B2622'];
+  const parts = Array.from({ length: 170 }, () => ({
+    x: Math.random() * W, y: -20 - Math.random() * H * .6,
+    vx: (Math.random() - .5) * 3, vy: 2 + Math.random() * 3.5,
+    w: 6 + Math.random() * 6, h: 8 + Math.random() * 8,
+    rot: Math.random() * Math.PI, vr: (Math.random() - .5) * .25,
+    color: colors[Math.floor(Math.random() * colors.length)],
+    round: Math.random() < .3,
+  }));
+  const start = performance.now(), DURATION = 4800;
+  (function frame(now) {
+    const t = now - start;
+    ctx.clearRect(0, 0, W, H);
+    ctx.globalAlpha = t > DURATION - 1000 ? Math.max(0, (DURATION - t) / 1000) : 1;
+    parts.forEach(p => {
+      p.x += p.vx + Math.sin((t + p.y) / 300) * .6; p.y += p.vy; p.vy += .03; p.rot += p.vr;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.fillStyle = p.color;
+      if (p.round) { ctx.beginPath(); ctx.arc(0, 0, p.w / 2, 0, Math.PI * 2); ctx.fill(); }
+      else ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h * .6);
+      ctx.restore();
+    });
+    if (t < DURATION) requestAnimationFrame(frame);
+    else ctx.clearRect(0, 0, W, H);
+  })(start);
+}
+
+/* Stop camera if the tab is closed */
+window.addEventListener('pagehide', () => stopCamera(true));
+
+/* =========================================================
+   Boot
+   ========================================================= */
+go('intro');
+</script>
+</body>
+</html>
