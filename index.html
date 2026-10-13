@@ -839,8 +839,7 @@ function renderEnd(kind) {
     el.innerHTML = p.nothing
       ? `<div class="end-emoji">🫠</div><h1 class="title">You kept… nothing.</h1>
          <p class="end-note">Bold choice 😂 But honestly, I’m really sorry. You deserve way more than a coupon. ❤️</p>`
-      : `<div class="kicker">deal 🤝</div><h1 class="title">It’s officially yours 💛</h1>${ticketHTML(p)}
-         <p class="end-note">Redeem it whenever you want. And again — I’m really, really sorry. Thank you for being you. 🫶</p>`;
+      : `<div class="kicker">deal 🤝</div><h1 class="title">It’s officially yours 💛</h1>${ticketHTML(p)}`;
   } else if (kind === 'win') {
     el.innerHTML = `<div class="kicker">winner winner 🏆</div><h1 class="title">You beat me!</h1>${ticketHTML(state.finalPrize, state.prize.nothing ? 'your real coupon' : 'your upgraded coupon')}
       <p class="end-note">Okay, you’re way too good at this. Still sorry, still yours 💛</p>`;
